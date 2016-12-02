@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mes voyages en train</title>
+    <link rel="stylesheet" href="bootstrap-flex.min.css">
+    <link rel="stylesheet" href="https://mapzen.com/js/mapzen.css">
+    <script src="https://unpkg.com/vue/dist/vue.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.0/moment.min.js" integrity="sha256-Q1iNs8Pv5aDBQqByxUM4pQmdzbPFyNooDFJKojYnVpg=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.0/locale/fr.js" integrity="sha256-1CD01z5DX4BPFhEeRAb2th8GDKbHhHjjjda91pLCrt4=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/lodash/4.16.6/lodash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.4.0/d3.js" integrity="sha256-IOnIx061QKBF2umT3sr/FYV/Pj504RsuFEWY5s3KL7Y=" crossorigin="anonymous"></script>
+    <script src="https://mapzen.com/js/mapzen.min.js"></script>
+    <script src="script.js"></script>
+  </head>
+
+  <style>
+
+body {
+    margin: 50px;
+}
+.bar rect {
+  fill: steelblue;
+}
+
+.slice text, .bar text {
+  fill: #fff;
+  font: 10px sans-serif;
+}
+
+#map {
+    width: 100%;
+    height: 500px;
+}
+</style>
+
+
+  <body>
+    <div class="container">
+    <h1>Un bout de ma vie avec <s>Capitaine</s> <s>Captain</s> TrainLine</h1>
+    <p>Je suis un très grand fan de TrainLine Europe depuis sa bêta, et je voyage pas mal en train.</p>
+    <p>Au fil des années, ils ont donc collecté plusieurs données sur moi et mes voyages.
+       Comme n’importe quel site, j’ai le <a href="https://www.cnil.fr/fr/le-droit-dacces">droit d’accéder</a> à ces données.</p>
+    <p>Comme c’est des gens bien, il rappellent ce droit sur <a href="https://www.trainline.fr/privacy-policy">leur site</a>.
+        Un simple mail permet de demander ces données, et les récupér dans un format manipulable informatiquement.</p>
+    <p class="bg-info text-white">
+        La notion de billet et de voyage est très compliquée. Un aller-retour peut-être vendu sur un même billet, avec la même
+        référence, ou un aller simple peut se composer de deux billets indépendants. Les chiffres sont donc à prendre avec beaucoup
+        de méfiance.
+    </p>
+    <div id="app">
+        <h2>Le compte</h2>
+        <p>Bonjour {{first_name}} {{last_name}}. Tu t’es inscrit·e le {{subscription}}, soit {{since}}.</p>
+
+        <h2>Les passagers</h2>
+        <p>Nombre de passagers avec au moins un billet : {{count}}</p>
+        <p>Nombre de voyages :
+            <ul>
+                <li> Tout seul 😿 : {{count_alone}}</li>
+                <li> Avec des amis, amants : {{count_mixed}}</li>
+                <li> Acheté altruistiquement pour un autre : {{count_other}}</li>
+                <li> À quatre ou plus, pour une belotte coinchée  : {{count_four}} 🂫🂩🂡🂺🂮</li>
+                <li> Avec ces personnes-là, tout précisément :
+                    <ul class="list-unstyled row">
+                        <li class="col-md-3" v-for="pax in passengers">
+                            {{pax[0]}} : {{pax[1]}}
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </p>
+
+        <h2>Distances</h2>
+        <div class="row">
+            <div class="row-xs">
+                <figure class="figure">
+                    <svg width="400" height="200" id="dist_hist"></svg>
+                    <figcaption class="figure-caption text-xs-center">Distance à vol d’oiseau*</figcaption>
+                </figure>
+            </div>
+            <div class="row-xs">
+                <figure class="figure">
+                    <svg width="400" height="200" id="duration_hist"></svg>
+                    <figcaption class="figure-caption text-xs-center">Temps de voyage*</figcaption>
+                </figure>
+            </div>
+            <div class="row-xs">
+                <figure class="figure">
+                    <svg width="400" height="200" id="avg_speed_hist"></svg>
+                    <figcaption class="figure-caption text-xs-center">Vitesse moyenne, à vol d’oiseau</figcaption>
+                </figure>
+            </div>
+            <div class="row-xs">
+                <figure class="figure">
+                    <svg width="400" height="200" id="km_price_hist"></svg>
+                    <figcaption class="figure-caption text-xs-center">Prix au km en centimes, à vol d’oiseau</figcaption>
+                </figure>
+            </div>
+
+            * Les trajets aller-retour ont été dédoublés. C’est pour ça qu’il y a plus de trajets que dans d’autre données.
+        </div>
+
+        <h2>Money money money 💰💰💰</h2>
+        <p>Dépenses totales: {{sum}} €, dont :
+            <ul>
+                <li>Paiement rapide (carte enregistrée): {{quick}} €</li>
+                <li>Paiements par coupons : {{by_coupon}} €</li>
+            </ul>
+            <div class="row">
+                <div class="row-xs">
+                    <figure class="figure">
+                        <svg width="300" height="300" id="card_pie"></svg>
+                        <figcaption class="figure-caption text-xs-center">Sommes dépensées, par carte bancaire finissant par…</figcaption>
+                    </figure>
+                </div>
+            </div>
+        </p>
+
+
+        <h2>Les voyages</h2>
+        <p>Temps passé à bord d’un train (aux retards et trains ratés près) : {{total_time}}</p>
+        <div id="map"></div>
+    </div>
+    </div>
+  </body>
+</html>
